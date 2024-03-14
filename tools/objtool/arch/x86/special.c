@@ -4,6 +4,8 @@
 #include <objtool/special.h>
 #include <objtool/builtin.h>
 
+#include <stdlib.h>
+
 #define X86_FEATURE_POPCNT (4 * 32 + 23)
 #define X86_FEATURE_SMAP   (9 * 32 + 20)
 
@@ -136,4 +138,51 @@ struct reloc *arch_find_switch_table(struct objtool_file *file,
 		file->ignore_unreachables = true;
 
 	return rodata_reloc;
+}
+
+int process_alt_data(struct objtool_file *file)
+{
+	exit(-1);
+}
+
+int process_fixup_entries(struct objtool_file *file)
+{
+	exit(-1);
+}
+
+struct fixup_entry *find_fe_altaddr(uint64_t addr)
+{
+	exit(-1);
+}
+
+int set_uncond_branch_target(uint32_t *insn,
+		const uint64_t addr, uint64_t target)
+{
+	exit(-1);
+}
+
+int set_cond_branch_target(uint32_t *insn,
+		const uint64_t addr, uint64_t target)
+{
+	exit(-1);
+}
+
+void check_and_flatten_fixup_entries(void)
+{
+	exit(-1);
+}
+
+int process_bug_entries(struct objtool_file *file)
+{
+	exit(-1);
+}
+
+int process_alt_relocations(struct objtool_file *file)
+{
+	exit(-1);
+}
+
+int process_exception_entries(struct objtool_file *file)
+{
+	exit(-1);
 }
