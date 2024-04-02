@@ -62,9 +62,9 @@ if [[ -n "$INSTALL" ]]; then
     cmd+="-e INSTALL=$INSTALL "
 fi
 
-if [[ "$TARGET" == "kernel" ]]; then
-    cmd+="-e QUIET=1 "
-fi
+#if [[ "$TARGET" == "kernel" ]]; then
+    #cmd+="-e QUIET=1 "
+#fi
 
 if [[ -n $KBUILD_EXTRA_WARN ]]; then
     cmd+="-e KBUILD_EXTRA_WARN=$KBUILD_EXTRA_WARN "
