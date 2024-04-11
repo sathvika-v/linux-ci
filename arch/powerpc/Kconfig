@@ -23,9 +23,17 @@ config 64BIT
 	bool
 	default y if PPC64
 
-config HAVE_OBJTOOL_FTR_FIXUP
+config OBJTOOL
 	bool
 	default y if CPU_LITTLE_ENDIAN && PPC64
+
+config HAVE_OBJTOOL_FTR_FIXUP
+	bool
+	default y if HAVE_OBJTOOL
+
+config HAVE_OBJTOOL_MCOUNT
+	bool
+	default y if HAVE_OBJTOOL
 
 config LIVEPATCH_64
 	def_bool PPC64
@@ -267,7 +275,6 @@ config PPC
 	select HAVE_NMI				if PERF_EVENTS || (PPC64 && PPC_BOOK3S)
 	select HAVE_OPTPROBES
 	select HAVE_OBJTOOL			if ARCH_USING_PATCHABLE_FUNCTION_ENTRY || MPROFILE_KERNEL || PPC32
-	select HAVE_OBJTOOL_MCOUNT		if HAVE_OBJTOOL
 	select HAVE_PERF_EVENTS
 	select HAVE_PERF_EVENTS_NMI		if PPC64
 	select HAVE_PERF_REGS
