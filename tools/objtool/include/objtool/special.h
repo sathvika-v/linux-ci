@@ -20,18 +20,39 @@ struct bug_entry_64 {
 	uint16_t flags;
 };
 
+struct bug_entry_32 {
+	uint32_t bug_addr;
+	uint16_t flags;
+};
+
 struct exception_entry_64 {
 	int32_t insn;
 	int32_t fixup;
 };
 
-struct fixup_entry {
+struct exception_entry_32 {
+        uint32_t insn;
+        uint32_t fixup;
+};
+
+struct fixup_entry_64 {
 	uint64_t mask;
 	uint64_t value;
 	uint64_t start_off;
 	uint64_t end_off;
 	uint64_t alt_start_off;
 	uint64_t alt_end_off;
+};
+
+#define fixup_entry fixup_entry_64
+
+struct fixup_entry_32 {
+        uint32_t mask;
+        uint32_t value;
+        uint32_t start_off;
+        uint32_t end_off;
+        uint32_t alt_start_off;
+        uint32_t alt_end_off;
 };
 
 struct special_alt {

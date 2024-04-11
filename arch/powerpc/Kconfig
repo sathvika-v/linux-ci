@@ -31,6 +31,11 @@ config MMU
 	bool
 	default y
 
+config HAVE_OBJTOOL_FTR_FIXUP
+	bool
+	default y
+	select OBJTOOL
+
 config ARCH_MMAP_RND_BITS_MAX
 	# On Book3S 64, the default virtual address space for 64-bit processes
 	# is 2^47 (128TB). As a maximum, allow randomisation to consume up to
@@ -264,7 +269,6 @@ config PPC
 	select HAVE_OPTPROBES
 	select HAVE_OBJTOOL			if ARCH_USING_PATCHABLE_FUNCTION_ENTRY || MPROFILE_KERNEL || PPC32
 	select HAVE_OBJTOOL_MCOUNT		if HAVE_OBJTOOL
-	select HAVE_OBJTOOL_FTR_FIXUP           if CPU_LITTLE_ENDIAN
 	select HAVE_PERF_EVENTS
 	select HAVE_PERF_EVENTS_NMI		if PPC64
 	select HAVE_PERF_REGS
