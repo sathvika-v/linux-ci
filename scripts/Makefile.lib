@@ -286,7 +286,13 @@ objtool-args = $(objtool-args-y)					\
 
 delay-objtool := $(or $(CONFIG_LTO_CLANG),$(CONFIG_X86_KERNEL_IBT))
 
+# Use objtool-args-y to check if any options are selected
+ifneq ($(objtool-args-y),)
 cmd_objtool = $(if $(objtool-enabled), ; $(objtool) $(objtool-args) $@)
+else
+cmd_objtool =
+endif
+
 cmd_gen_objtooldep = $(if $(objtool-enabled), { echo ; echo '$@: $$(wildcard $(objtool))' ; } >> $(dot-target).cmd)
 
 endif # CONFIG_OBJTOOL
