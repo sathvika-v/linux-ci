@@ -161,8 +161,8 @@ static bool opts_valid(void)
 	if (opts.dump_orc)
 		return true;
 
-//	ERROR("At least one command required");
-	return true;
+	ERROR("At least one command required");
+	return false;
 }
 
 static bool mnop_opts_valid(void)
