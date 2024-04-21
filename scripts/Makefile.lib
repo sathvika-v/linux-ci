@@ -266,9 +266,9 @@ objtool-args-$(CONFIG_HAVE_NOINSTR_HACK)		+= --hacks=noinstr
 objtool-args-$(CONFIG_MITIGATION_CALL_DEPTH_TRACKING)	+= --hacks=skylake
 objtool-args-$(CONFIG_X86_KERNEL_IBT)			+= --ibt
 objtool-args-$(CONFIG_FINEIBT)				+= --cfi
-objtool-args-$(CONFIG_FTRACE_MCOUNT_USE_OBJTOOL)	+= --mcount
+objtool-args-$(CONFIG_FTRACE_MCOUNT_USE_OBJTOOL)       += --mcount
 ifdef CONFIG_FTRACE_MCOUNT_USE_OBJTOOL
-objtool-args-$(CONFIG_HAVE_OBJTOOL_NOP_MCOUNT)		+= --mnop
+objtool-args-$(CONFIG_HAVE_OBJTOOL_NOP_MCOUNT)         += --mnop
 endif
 objtool-args-$(CONFIG_UNWINDER_ORC)			+= --orc
 objtool-args-$(CONFIG_MITIGATION_RETPOLINE)		+= --retpoline
@@ -288,10 +288,13 @@ delay-objtool := $(or $(CONFIG_LTO_CLANG),$(CONFIG_X86_KERNEL_IBT))
 
 ifneq ($(objtool-args-y),)
 cmd_objtool = $(if $(objtool-enabled), ; $(objtool) $(objtool-args) $@)
-else ifneq ($CONFIG_HAVE_OBJTOOL_FTR_FIXUP),)
-ifeq ($@, vmlinux)
-cmd_objtool = $(if $(objtool-enabled), ; $(objtool) $(objtool-args) $@)
 endif
+
+cmd_objtool_vmlinux :=
+ifeq ($(CONFIG_HAVE_OBJTOOL_FTR_FIXUP),y)
+cmd_objtool_vmlinux = $(if $(objtool-enabled), ; $(objtool) $(objtool-args) $@)
+vmlinux:
+    $(cmd_objtool_vmlinux)
 endif
 
 cmd_gen_objtooldep = $(if $(objtool-enabled), { echo ; echo '$@: $$(wildcard $(objtool))' ; } >> $(dot-target).cmd)
