@@ -44,6 +44,18 @@ static u32 *calc_addr(struct fixup_entry *fcur, long offset)
 	return (u32 *)((unsigned long)fcur + offset);
 }
 
+#ifdef CONFIG_CPU_LITTLE_ENDIAN
+static int patch_alt_instruction(u32 *src, u32 *dest, u32 *alt_start, u32 *alt_end)
+{
+	ppc_inst_t instr;
+
+	instr = ppc_inst_read(src);
+
+	raw_patch_instruction(dest, instr);
+
+	return 0;
+}
+#else
 static int patch_alt_instruction(u32 *src, u32 *dest, u32 *alt_start, u32 *alt_end)
 {
 	int err;
@@ -66,6 +78,7 @@ static int patch_alt_instruction(u32 *src, u32 *dest, u32 *alt_start, u32 *alt_e
 
 	return 0;
 }
+#endif
 
 static int patch_feature_section_mask(unsigned long value, unsigned long mask,
 				      struct fixup_entry *fcur)

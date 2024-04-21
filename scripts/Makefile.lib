@@ -286,7 +286,15 @@ objtool-args = $(objtool-args-y)					\
 
 delay-objtool := $(or $(CONFIG_LTO_CLANG),$(CONFIG_X86_KERNEL_IBT))
 
-cmd_objtool = $(if $(objtool-enabled), ; $(objtool) $(objtool-args) $@)
+cmd_objtool = $(if $(and $(objtool-enabled),$(objtool-args-y)),$(objtool) $(objtool-args) $@)
+
+cmd_objtool_vmlinux :=
+ifeq ($(CONFIG_HAVE_OBJTOOL_FTR_FIXUP),y)
+cmd_objtool_vmlinux = $(if $(objtool-enabled), ; $(objtool) $(objtool-args) $@)
+vmlinux:
+    $(cmd_objtool_vmlinux)
+endif
+
 cmd_gen_objtooldep = $(if $(objtool-enabled), { echo ; echo '$@: $$(wildcard $(objtool))' ; } >> $(dot-target).cmd)
 
 endif # CONFIG_OBJTOOL
