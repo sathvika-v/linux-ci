@@ -23,6 +23,11 @@ config 64BIT
 	bool
 	default y if PPC64
 
+config HAVE_OBJTOOL_FTR_FIXUP
+        bool
+        default y if CPU_LITTLE_ENDIAN && PPC64
+        select OBJTOOL
+
 config LIVEPATCH_64
 	def_bool PPC64
 	depends on LIVEPATCH

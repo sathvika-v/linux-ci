@@ -22,6 +22,9 @@
 #include <linux/static_call_types.h>
 #include <linux/string.h>
 
+#include <asm/byteorder.h>
+#include <errno.h>
+
 struct alternative {
 	struct alternative *next;
 	struct instruction *insn;
@@ -456,12 +459,15 @@ static int decode_instructions(struct objtool_file *file)
 				return -1;
 			}
 
+			if (func->len == 0)
+				continue;
+
 			if (func->embedded_insn || func->alias != func)
 				continue;
 
-			if (!find_insn(file, sec, func->offset)) {
-				WARN("%s(): can't find starting instruction",
-				     func->name);
+			if (!find_insn(file, sec, opts.ftr_fixup ?
+						func->offset - sec->sym->offset : func->offset)) {
+				WARN("%s(): can't find starting instruction", func->name);
 				return -1;
 			}
 
@@ -1707,7 +1713,7 @@ static int add_call_destinations(struct objtool_file *file)
 			if (insn->ignore)
 				continue;
 
-			if (!insn_call_dest(insn)) {
+			if (!insn_call_dest(insn) && !opts.ftr_fixup) {
 				WARN_INSN(insn, "unannotated intra-function call");
 				return -1;
 			}
@@ -4719,6 +4725,30 @@ int check(struct objtool_file *file)
 
 	if (!nr_insns)
 		goto out;
+
+	if (opts.ftr_fixup) {
+		ret = process_alt_data(file);
+		if (ret < 0)
+			return ret;
+
+		ret = process_fixup_entries(file);
+		if (ret < 0)
+			return ret;
+
+		check_and_flatten_fixup_entries();
+
+		ret = process_exception_entries(file);
+		if (ret < 0)
+			return ret;
+
+		ret = process_bug_entries(file);
+		if (ret < 0)
+			return ret;
+
+		ret = process_alt_relocations(file);
+		if (ret < 0)
+			return ret;
+	}
 
 	if (opts.retpoline) {
 		ret = validate_retpoline(file);
