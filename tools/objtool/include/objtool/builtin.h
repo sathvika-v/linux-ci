@@ -10,6 +10,7 @@
 struct opts {
 	/* actions: */
 	bool dump_orc;
+	bool ftr_fixup;
 	bool hack_jump_label;
 	bool hack_noinstr;
 	bool hack_skylake;

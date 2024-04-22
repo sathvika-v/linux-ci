@@ -68,6 +68,7 @@ static int parse_hacks(const struct option *opt, const char *str, int unset)
 static const struct option check_options[] = {
 	OPT_GROUP("Actions:"),
 	OPT_CALLBACK_OPTARG('h', "hacks", NULL, NULL, "jump_label,noinstr,skylake", "patch toolchain bugs/limitations", parse_hacks),
+	OPT_BOOLEAN('f', "ftr-fixup", &opts.ftr_fixup, "feature fixup"),
 	OPT_BOOLEAN('i', "ibt", &opts.ibt, "validate and annotate IBT"),
 	OPT_BOOLEAN('m', "mcount", &opts.mcount, "annotate mcount/fentry calls for ftrace"),
 	OPT_BOOLEAN('n', "noinstr", &opts.noinstr, "validate noinstr rules"),
@@ -132,6 +133,7 @@ int cmd_parse_options(int argc, const char **argv, const char * const usage[])
 static bool opts_valid(void)
 {
 	if (opts.hack_jump_label	||
+	    opts.ftr_fixup		||
 	    opts.hack_noinstr		||
 	    opts.ibt			||
 	    opts.mcount			||
