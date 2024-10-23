@@ -53,38 +53,39 @@ int process_fixup_entries(struct objtool_file *file)
 		if (strstr(sec->name, "_ftr_fixup") != NULL) {
 			Elf_Data *data = sec->data;
 
-			if (data && data->d_size > 0)
+			if (data && data->d_size > 0) {
 				nr = data->d_size / sizeof(struct fixup_entry);
 
-			for (i = 0; i < nr; i++) {
-				struct fixup_entry *dst;
-				unsigned long idx;
-				unsigned long long off;
-				struct fixup_entry *src;
+				for (i = 0; i < nr; i++) {
+					struct fixup_entry *dst;
+					unsigned long idx;
+					unsigned long long off;
+					struct fixup_entry *src;
 
-				idx = i * sizeof(struct fixup_entry);
-				off = sec->sh.sh_addr + data->d_off + idx;
-				src = data->d_buf + idx;
+					idx = i * sizeof(struct fixup_entry);
+					off = sec->sh.sh_addr + data->d_off + idx;
+					src = data->d_buf + idx;
 
-				if (src->alt_start_off == src->alt_end_off)
-					continue;
+					if (src->alt_start_off == src->alt_end_off)
+						continue;
 
-				fes = realloc(fes, (nr_fes + 1) * sizeof(struct fixup_entry));
-				dst = &fes[nr_fes];
-				nr_fes++;
+					fes = realloc(fes, (nr_fes + 1) * sizeof(struct fixup_entry));
+					dst = &fes[nr_fes];
+					nr_fes++;
 
-				dst->mask = __le64_to_cpu(src->mask);
-				dst->value = __le64_to_cpu(src->value);
-				dst->start_off = __le64_to_cpu(src->start_off) + off;
-				dst->end_off = __le64_to_cpu(src->end_off) + off;
-				dst->alt_start_off = __le64_to_cpu(src->alt_start_off) + off;
-				dst->alt_end_off = __le64_to_cpu(src->alt_end_off) + off;
+					dst->mask = __le64_to_cpu(src->mask);
+					dst->value = __le64_to_cpu(src->value);
+					dst->start_off = __le64_to_cpu(src->start_off) + off;
+					dst->end_off = __le64_to_cpu(src->end_off) + off;
+					dst->alt_start_off = __le64_to_cpu(src->alt_start_off) + off;
+					dst->alt_end_off = __le64_to_cpu(src->alt_end_off) + off;
 
-				if (dst->alt_start_off < fe_alt_start)
-					fe_alt_start = dst->alt_start_off;
+					if (dst->alt_start_off < fe_alt_start)
+						fe_alt_start = dst->alt_start_off;
 
-				if (dst->alt_end_off > fe_alt_end)
-					fe_alt_end = dst->alt_end_off;
+					if (dst->alt_end_off > fe_alt_end)
+						fe_alt_end = dst->alt_end_off;
+				}
 			}
 		}
 	}
