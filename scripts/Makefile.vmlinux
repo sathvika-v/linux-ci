@@ -73,10 +73,9 @@ existing-targets := $(wildcard $(sort $(targets)))
 # ----------------------------------
 #
 #  For feature fixup, objtool does not run on individual
-#  translation units. Run this on vmlinux instead.
+#  translation units. Run this on vmlinux instead. Only for PowerPC.
+#  The other objtool commands work on individual objects or vmlinux.o.
 
-objtool-enabled := $(CONFIG_HAVE_OBJTOOL_FTR_FIXUP)
-
-vmlinux-objtool-args-$(CONFIG_HAVE_OBJTOOL_FTR_FIXUP)  += --ftr-fixup
-
-objtool-args = $(vmlinux-objtool-args-y) --link
+ifdef CONFIG_HAVE_OBJTOOL_FTR_FIXUP
+cmd_objtool_vmlinux = ; $(objtool) --ftr-fixup --link $@
+endif
