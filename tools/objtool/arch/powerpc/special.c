@@ -80,11 +80,13 @@ int process_fixup_entries(struct objtool_file *file)
 					dst->alt_start_off = __le64_to_cpu(src->alt_start_off) + off;
 					dst->alt_end_off = __le64_to_cpu(src->alt_end_off) + off;
 
-					if (dst->alt_start_off < fe_alt_start)
-						fe_alt_start = dst->alt_start_off;
+					if (strstr(sec->name, ".rela") == NULL) {
+						if (dst->alt_start_off < fe_alt_start)
+							fe_alt_start = dst->alt_start_off;
 
-					if (dst->alt_end_off > fe_alt_end)
-						fe_alt_end = dst->alt_end_off;
+						if (dst->alt_end_off > fe_alt_end)
+							fe_alt_end = dst->alt_end_off;
+					}
 				}
 			}
 		}
@@ -299,6 +301,8 @@ int process_alt_relocations(struct objtool_file *file)
 			i = ftr_alt->data->d_buf + scn_delta;
 			insn = __le32_to_cpu(*i);
 
+			printf("Instruction before modification: 0x%x\n", insn);
+
 			opcode = insn >> 26;
 
 			if (opcode == 16)
@@ -307,6 +311,7 @@ int process_alt_relocations(struct objtool_file *file)
 			if (opcode == 18)
 				set_uncond_branch_target(&insn, dst_addr, target);
 
+			printf("Instruction after modification: 0x%x\n", insn);
 			insn_ptr = (const char *)&insn;
 			elf_write_insn(file->elf, ftr_alt, scn_delta, sizeof(insn), insn_ptr);
 		}
