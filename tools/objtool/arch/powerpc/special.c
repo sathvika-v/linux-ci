@@ -43,6 +43,32 @@ int process_alt_data(struct objtool_file *file)
 	return 0;
 }
 
+static int is_le(struct objtool_file *file)
+{
+    return file->elf->ehdr.e_ident[EI_DATA] == ELFDATA2LSB;
+}
+
+static int is_64bit(struct objtool_file *file)
+{
+    return file->elf->ehdr.e_ident[EI_CLASS] == ELFCLASS64;
+}
+
+static uint32_t f32_to_cpu(struct objtool_file *file, uint32_t val)
+{
+    if (is_le(file))
+        return __le32_to_cpu(val);
+    else
+        return __be32_to_cpu(val);
+}
+
+static uint64_t f64_to_cpu(struct objtool_file *file, uint64_t val)
+{
+    if (is_le(file))
+        return __le64_to_cpu(val);
+    else
+        return __be64_to_cpu(val);
+}
+
 int process_fixup_entries(struct objtool_file *file)
 {
 	struct section *sec;
@@ -53,32 +79,73 @@ int process_fixup_entries(struct objtool_file *file)
 		if (strstr(sec->name, "_ftr_fixup") != NULL) {
 			Elf_Data *data = sec->data;
 
+			printf("processing section: %s\n", sec->name);
 			if (data && data->d_size > 0) {
-				nr = data->d_size / sizeof(struct fixup_entry);
+				nr = data->d_size / sizeof(struct fixup_entry_64);
 
 				for (i = 0; i < nr; i++) {
-					struct fixup_entry *dst;
+		
 					unsigned long idx;
 					unsigned long long off;
-					struct fixup_entry *src;
+					struct fixup_entry_64 *dst;
 
-					idx = i * sizeof(struct fixup_entry);
-					off = sec->sh.sh_addr + data->d_off + idx;
-					src = data->d_buf + idx;
+					if (is_64bit(file)) {
+						struct fixup_entry_64 *src;
+						//struct fixup_entry_64 *dst;
+						
+						printf("is 64 bit\n");
+						idx = i * sizeof(struct fixup_entry_64);
+						off = sec->sh.sh_addr + data->d_off + idx;
+						src = data->d_buf + idx;
 
-					if (src->alt_start_off == src->alt_end_off)
-						continue;
+						if (src->alt_start_off == src->alt_end_off)
+							continue;
 
-					fes = realloc(fes, (nr_fes + 1) * sizeof(struct fixup_entry));
-					dst = &fes[nr_fes];
-					nr_fes++;
+						fes = realloc(fes, (nr_fes + 1) * sizeof(struct fixup_entry));
+						dst = &fes[nr_fes];
+						nr_fes++;
 
-					dst->mask = __le64_to_cpu(src->mask);
-					dst->value = __le64_to_cpu(src->value);
-					dst->start_off = __le64_to_cpu(src->start_off) + off;
-					dst->end_off = __le64_to_cpu(src->end_off) + off;
-					dst->alt_start_off = __le64_to_cpu(src->alt_start_off) + off;
-					dst->alt_end_off = __le64_to_cpu(src->alt_end_off) + off;
+						dst->mask = f64_to_cpu(file, src->mask);
+						dst->value = f64_to_cpu(file, src->value);
+						dst->start_off = f64_to_cpu(file, src->start_off) + off;
+						dst->end_off = f64_to_cpu(file, src->end_off) + off;
+						dst->alt_start_off = f64_to_cpu(file, src->alt_start_off) + off;
+						dst->alt_end_off = f64_to_cpu(file, src->alt_end_off) + off;
+                                                printf("off: 0x%llx\n", off);
+                                                printf("dst->alt_start_off: 0x%lx, dst->alt_end_off: 0x%lx\n", dst->alt_start_off, dst->alt_end_off);
+                                                printf("fe_alt_start: 0x%lx, fe_alt_end: 0x%lx\n", fe_alt_start, fe_alt_end);
+
+					}
+					
+					else {
+						struct fixup_entry_32 *src;
+						//struct fixup_entry_64 *dst;
+
+						printf("is 32 bit\n");
+					
+						idx = i * sizeof(struct fixup_entry_32);
+
+						off = sec->sh.sh_addr + data->d_off + idx;
+						src = data->d_buf + idx;
+
+						if (src->alt_start_off == src->alt_end_off)
+							continue;
+
+						fes = realloc(fes, (nr_fes + 1) * sizeof(struct fixup_entry));
+						dst = &fes[nr_fes];
+						nr_fes++;
+
+						dst->mask = f32_to_cpu(file, src->mask);
+						dst->value = f32_to_cpu(file, src->value);
+						dst->start_off = f32_to_cpu(file, src->start_off) + off;
+						dst->end_off = f32_to_cpu(file, src->end_off) + off;
+						dst->alt_start_off = f32_to_cpu(file, src->alt_start_off) + off;
+						dst->alt_end_off = f32_to_cpu(file, src->alt_end_off) + off;
+						
+						printf("off: 0x%llx\n", off);
+						printf("dst->alt_start_off: 0x%lx, dst->alt_end_off: 0x%lx\n", dst->alt_start_off, dst->alt_end_off);
+						printf("fe_alt_start: 0x%lx, fe_alt_end: 0x%lx\n", fe_alt_start, fe_alt_end);
+					}
 
 					if (strstr(sec->name, ".rela") == NULL) {
 						if (dst->alt_start_off < fe_alt_start)
@@ -87,6 +154,12 @@ int process_fixup_entries(struct objtool_file *file)
 						if (dst->alt_end_off > fe_alt_end)
 							fe_alt_end = dst->alt_end_off;
 					}
+				
+
+					printf("%llx fixup entry %llx:%llx (%llx-%llx) <- (%llx-%llx)\n", off,
+					(unsigned long long)dst->mask, (unsigned long long)dst->value,
+					(unsigned long long)dst->start_off, (unsigned long long)dst->end_off,
+					(unsigned long long)dst->alt_start_off, (unsigned long long)dst->alt_end_off);
 				}
 			}
 		}
@@ -193,22 +266,64 @@ int process_bug_entries(struct objtool_file *file)
 
 	data = section->data;
 
-	nr = data->d_size / sizeof(struct bug_entry_64);
+	if (is_64bit(file))
+		nr = data->d_size / sizeof(struct bug_entry_64);
+	else
+		nr = data->d_size / sizeof(struct bug_entry_32);
 
 	for (i = 0; i < nr; i++) {
 		unsigned long idx;
 		uint64_t bugaddr;
-		struct bug_entry_64 *bug;
+		unsigned long long off;
 
-		idx = i * sizeof(struct bug_entry_64);
-		bug = data->d_buf + idx;
-		bugaddr = __le64_to_cpu(bug->bug_addr);
+		if (is_64bit(file)) {
+			struct bug_entry_64 *bug;
+
+			printf("process_bug_entries(): 64 bit\n");
+
+			idx = i * sizeof(struct bug_entry_64);
+			off = section->sh.sh_addr + data->d_off + idx;
+			bug = data->d_buf + idx;
+			bugaddr = (bug->bug_addr) + off;
+	                printf("bugaddr[%d]: 0x%lx\n", i, bugaddr);
+        	        printf("off: 0x%llx\n", off);
+                	printf("fe_alt_start: 0x%lx\n", fe_alt_start);
+                	printf("fe_alt_end: 0x%lx\n", fe_alt_end);
+		}
+
+		else {
+			struct bug_entry_32 *bug;
+
+			printf("process_bug_entries(): 32 bit\n");
+
+			idx = i * sizeof(struct bug_entry_32);
+			off = section->sh.sh_addr + data->d_off + idx;
+			bug = data->d_buf + idx;
+			bugaddr = (bug->bug_addr) + off;
+                        printf("bugaddr[%d]: 0x%lx\n", i, bugaddr);
+                        printf("off: 0x%llx\n", off);
+                        printf("bugaddr[%d] + off: 0x%llx\n", i, bugaddr + off);
+                        printf("fe_alt_start: 0x%lx\n", fe_alt_start);
+                        printf("fe_alt_end: 0x%lx\n", fe_alt_end);
+
+		}
+
+/*
+		printf("bugaddr[%d]: 0x%lx\n", i, bugaddr);
+		printf("off: 0x%llx\n", off);
+		printf("bugaddr[%d] + off: 0x%llx\n", i, bugaddr + off);
+                printf("fe_alt_start: 0x%lx\n", fe_alt_start);
+                printf("fe_alt_end: 0x%lx\n", fe_alt_end);
+*/
 
 		if (bugaddr < fe_alt_start)
 			continue;
 
 		if (bugaddr >= fe_alt_end)
 			continue;
+
+		printf("ftr_alt code contains a bug entry, which is not allowed. address=%llx\n", (unsigned long long)bugaddr);
+		exit(EXIT_FAILURE);
 	}
 
 	return 0;
@@ -299,7 +414,7 @@ int process_alt_relocations(struct objtool_file *file)
 			dst_addr = addr - fe->alt_start_off + fe->start_off;
 
 			i = ftr_alt->data->d_buf + scn_delta;
-			insn = __le32_to_cpu(*i);
+			insn = f32_to_cpu(file, *i);
 
 			printf("Instruction before modification: 0x%x\n", insn);
 
@@ -329,18 +444,53 @@ int process_exception_entries(struct objtool_file *file)
 	section = find_section_by_name(file->elf, "__ex_table");
 
 	data = section->data;
-	nr = data->d_size / sizeof(struct exception_entry_64);
+
+	if (is_64bit(file))
+		nr = data->d_size / sizeof(struct exception_entry_64);
+	else
+		nr = data->d_size / sizeof(struct exception_entry_32);
 
 	for (i = 0; i < nr; i++) {
 		unsigned long idx;
 		uint64_t exaddr;
 		unsigned long long off;
-		struct exception_entry_64 *ex;
 
-		idx = i * sizeof(struct exception_entry_64);
-		off = section->sh.sh_addr + data->d_off + idx;
-		ex = data->d_buf + idx;
-		exaddr = __le32_to_cpu(ex->insn) + off;
+		if (is_64bit(file)) {
+			struct exception_entry_64 *ex;
+			
+			printf("process_exception_entries(): 64 bit\n");
+			idx = i * sizeof(struct exception_entry_64);
+			off = section->sh.sh_addr + data->d_off + idx;
+			ex = data->d_buf + idx;
+			exaddr = (ex->insn) + off;
+	                printf("off: 0x%llx\n", off);
+        	        printf("(ex->insn): 0x%x\n", (ex->insn));
+                	printf("exaddr[%d]: 0x%lx\n", i, exaddr);
+                	printf("fe_alt_start: 0x%lx\n", fe_alt_start);
+                	printf("fe_alt_end: 0x%lx\n", fe_alt_end);
+
+		}
+		else {
+			struct exception_entry_32 *ex;
+			printf("process_exception_entries(): 32 bit\n");
+			idx = i * sizeof(struct exception_entry_32);
+			off = section->sh.sh_addr + data->d_off + idx;
+			ex = data->d_buf + idx;
+			exaddr = f32_to_cpu(file, ex->insn) + off;
+			printf("off: 0x%llx\n", off);
+                        printf("f32_to_cpu(file, ex->insn): 0x%x\n", f32_to_cpu(file, ex->insn));
+                        printf("exaddr[%d]: 0x%lx\n", i, exaddr);
+                        printf("fe_alt_start: 0x%lx\n", fe_alt_start);
+                        printf("fe_alt_end: 0x%lx\n", fe_alt_end);
+		}
+
+/*
+		printf("off: 0x%llx\n", off);
+		printf("(ex->insn): 0x%x\n", (ex->insn));
+		printf("exaddr[%d]: 0x%lx\n", i, exaddr);
+		printf("fe_alt_start: 0x%lx\n", fe_alt_start);
+		printf("fe_alt_end: 0x%lx\n", fe_alt_end);
+*/
 
 		if (exaddr < fe_alt_start)
 			continue;

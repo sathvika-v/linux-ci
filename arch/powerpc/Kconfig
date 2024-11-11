@@ -25,7 +25,7 @@ config 64BIT
 
 config HAVE_OBJTOOL_FTR_FIXUP
         bool
-        default y if CPU_LITTLE_ENDIAN && PPC64
+        default y
 	# HAVE_OBJTOOL_FTR_FIXUP must not select OBJTOOL
 
 config LIVEPATCH_64
