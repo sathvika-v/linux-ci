@@ -2,6 +2,11 @@
 include ../scripts/Makefile.include
 include ../scripts/Makefile.arch
 
+ifeq ($(wildcard ../../include/config/auto.conf),)
+    $(error Error: Kernel configuration file ".config" not found!)
+endif
+include ../../include/config/auto.conf
+
 ifeq ($(srctree),)
 srctree := $(patsubst %/,%,$(dir $(CURDIR)))
 srctree := $(patsubst %/,%,$(dir $(srctree)))
@@ -38,6 +43,10 @@ OBJTOOL_LDFLAGS := $(LIBELF_LIBS) $(LIBSUBCMD) $(KBUILD_HOSTLDFLAGS)
 # Allow old libelf to be used:
 elfshdr := $(shell echo '$(pound)include <libelf.h>' | $(HOSTCC) $(OBJTOOL_CFLAGS) -x c -E - | grep elf_getshdr)
 OBJTOOL_CFLAGS += $(if $(elfshdr),,-DLIBELF_USE_DEPRECATED)
+
+ifdef CONFIG_DEBUG_BUGVERBOSE
+OBJTOOL_CFLAGS		+= -DDEBUG_BUGVERBOSE
+endif
 
 # Always want host compilation.
 HOST_OVERRIDES := CC="$(HOSTCC)" LD="$(HOSTLD)" AR="$(HOSTAR)"
