@@ -25,7 +25,7 @@ config 64BIT
 
 config HAVE_OBJTOOL_FTR_FIXUP
         bool
-        default y
+        default y if PPC64
 	# HAVE_OBJTOOL_FTR_FIXUP must not select OBJTOOL
 
 config LIVEPATCH_64
