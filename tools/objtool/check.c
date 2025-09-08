@@ -4675,7 +4675,7 @@ static void free_insns(struct objtool_file *file)
 int check(struct objtool_file *file)
 {
 	int ret = 0, warnings = 0;
-
+	printf("inside check()\n");
 	arch_initial_func_cfi_state(&initial_func_cfi);
 	init_cfi_state(&init_cfi);
 	init_cfi_state(&func_cfi);
