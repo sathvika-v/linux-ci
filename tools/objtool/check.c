@@ -4698,6 +4698,12 @@ int check(struct objtool_file *file)
 	if (!nr_insns)
 		goto out;
 
+	if (opts.ftr_fixup) {
+		ret = process_alt_data(file);
+		if (ret < 0)
+			return ret;
+	}
+
 	if (opts.retpoline)
 		warnings += validate_retpoline(file);
 
