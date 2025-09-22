@@ -23,6 +23,10 @@ config 64BIT
 	bool
 	default y if PPC64
 
+config HAVE_OBJTOOL_FTR_FIXUP
+        bool
+        default y
+
 config LIVEPATCH_64
 	def_bool PPC64
 	depends on LIVEPATCH
