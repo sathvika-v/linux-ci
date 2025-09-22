@@ -1334,6 +1334,11 @@ config HAVE_UACCESS_VALIDATION
 	bool
 	select OBJTOOL
 
+config HAVE_OBJTOOL_FTR_FIXUP
+	bool
+	help
+          Architecture supports objtool compile-time feature fixups
+
 config HAVE_STACK_VALIDATION
 	bool
 	help
