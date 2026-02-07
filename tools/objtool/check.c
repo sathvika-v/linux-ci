@@ -412,7 +412,7 @@ static int decode_instructions(struct objtool_file *file)
 {
 	struct section *sec;
 	struct symbol *func;
-	unsigned long offset;
+	unsigned long offset, func_off;
 	struct instruction *insn;
 
 	for_each_sec(file->elf, sec) {
@@ -494,17 +494,25 @@ static int decode_instructions(struct objtool_file *file)
 			if (func->embedded_insn || func->alias != func)
 				continue;
 
-			if (!find_insn(file, sec, func->offset)) {
+			if (func->len == 0 && is_notype_sym(func))
+				continue;
+
+			func_off = opts.ftr_fixup ?
+				func->offset - sec->sh.sh_addr : func->offset;
+
+			if (!find_insn(file, sec, func_off)) {
 				ERROR("%s(): can't find starting instruction", func->name);
 				return -1;
 			}
 
-			sym_for_each_insn(file, func, insn) {
+			for (insn = find_insn(file, sec, func_off);
+				insn && insn->offset < func_off + func->len;
+				insn = next_insn_same_sec(file, insn)) {
 				insn->sym = func;
 				if (is_func_sym(func) &&
 				    insn->type == INSN_ENDBR &&
 				    list_empty(&insn->call_node)) {
-					if (insn->offset == func->offset) {
+					if (insn->offset == func_off) {
 						list_add_tail(&insn->call_node, &file->endbr_list);
 						file->nr_endbr++;
 					} else {
