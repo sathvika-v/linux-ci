@@ -3,6 +3,8 @@
  * Copyright (C) 2015-2017 Josh Poimboeuf <jpoimboe@redhat.com>
  */
 
+// test
+
 #define _GNU_SOURCE /* memmem() */
 #include <fnmatch.h>
 #include <string.h>
