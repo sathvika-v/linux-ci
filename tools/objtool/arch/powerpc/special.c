@@ -279,8 +279,8 @@ static struct symbol *find_symbol_at_address_within_section(struct section *sec,
 
 static int is_local_symbol(uint8_t st_other)
 {
-	/* STO_PPC64_LOCAL_ENTRY occupies bits [4:2]; 0 means no local entry offset */
-	return (st_other & 0x1c) == 0;
+	/* STO_PPC64_LOCAL_MASK: bits [7:5] encode the local entry point offset */
+	return (st_other & (7 << 5)) == 0;
 }
 
 static struct symbol *find_symbol_at_address(struct objtool_file *file,
