@@ -493,25 +493,31 @@ static int decode_instructions(struct objtool_file *file)
 			if (func->embedded_insn || func->alias != func)
 				continue;
 
-			if (func->len == 0)
+			if (func->len == 0 && is_notype_sym(func))
 				continue;
 
-			if (!find_insn(file, sec, opts.ftr_fixup ?
-					func->offset - sec->sym->offset : func->offset)) {
-				ERROR("%s(): can't find starting instruction", func->name);
-				return -1;
-			}
+			{
+				unsigned long rel_off = opts.ftr_fixup ?
+					func->offset - sec->sh.sh_addr : func->offset;
 
-			sym_for_each_insn(file, func, insn) {
-				insn->sym = func;
-				if (is_func_sym(func) &&
-				    insn->type == INSN_ENDBR &&
-				    list_empty(&insn->call_node)) {
-					if (insn->offset == func->offset) {
-						list_add_tail(&insn->call_node, &file->endbr_list);
-						file->nr_endbr++;
-					} else {
-						file->nr_endbr_int++;
+				if (!find_insn(file, sec, rel_off)) {
+					ERROR("%s(): can't find starting instruction", func->name);
+					return -1;
+				}
+
+				for (insn = find_insn(file, func->sec, rel_off);
+				     insn && insn->offset < rel_off + func->len;
+				     insn = next_insn_same_sec(file, insn)) {
+					insn->sym = func;
+					if (is_func_sym(func) &&
+					    insn->type == INSN_ENDBR &&
+					    list_empty(&insn->call_node)) {
+						if (insn->offset == rel_off) {
+							list_add_tail(&insn->call_node, &file->endbr_list);
+							file->nr_endbr++;
+						} else {
+							file->nr_endbr_int++;
+						}
 					}
 				}
 			}
