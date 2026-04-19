@@ -309,7 +309,6 @@ int process_alt_relocations(struct objtool_file *file)
 	uint64_t dst_addr;
 	const char *insn_ptr;
 	unsigned long target;
-	struct symbol *symbol;
 	int is_local;
 	int j;
 	uint32_t new_insn;
@@ -332,10 +331,9 @@ int process_alt_relocations(struct objtool_file *file)
 			continue;
 		addr = reloc_offset(relocation);
 		target = sym->sym.st_value + reloc_addend(relocation);
-		symbol = find_symbol_at_address(file, target);
 
-		if (symbol && is_64bit(file)) {
-			is_local = is_local_symbol(symbol->sym.st_other);
+		if (is_64bit(file)) {
+			is_local = is_local_symbol(sym->sym.st_other);
 			if (!is_local)
 				target = target + 0x8;
 		}
