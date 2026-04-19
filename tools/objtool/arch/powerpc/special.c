@@ -42,8 +42,11 @@ int process_alt_data(struct objtool_file *file)
 	section = find_section_by_name(file->elf, ".__ftr_alternates.text");
 	ftr_alt = section;
 
-	if (!ftr_alt)
-		return 0;
+	if (!ftr_alt) {
+		if (opts.link)
+			WARN(".__ftr_alternates.text section not found in vmlinux\n");
+		return opts.link ? -1 : 0;
+	}
 
 	fe_alt_start = ftr_alt->sh.sh_addr;
 	fe_alt_end = ftr_alt->sh.sh_addr + ftr_alt->sh.sh_size;
