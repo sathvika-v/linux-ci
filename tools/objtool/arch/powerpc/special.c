@@ -42,10 +42,8 @@ int process_alt_data(struct objtool_file *file)
 	section = find_section_by_name(file->elf, ".__ftr_alternates.text");
 	ftr_alt = section;
 
-	if (!ftr_alt) {
-		WARN(".__ftr_alternates.text section not found\n");
-		return -1;
-	}
+	if (!ftr_alt)
+		return 0;
 
 	fe_alt_start = ftr_alt->sh.sh_addr;
 	fe_alt_end = ftr_alt->sh.sh_addr + ftr_alt->sh.sh_size;
@@ -127,7 +125,15 @@ int process_fixup_entries(struct objtool_file *file)
 				if (src->alt_start_off == src->alt_end_off)
 					continue;
 
-				fes = realloc(fes, (nr_fes + 1) * sizeof(struct fixup_entry));
+				{
+					struct fixup_entry *tmp = realloc(fes, (nr_fes + 1) * sizeof(struct fixup_entry));
+					if (!tmp) {
+						free(fes);
+						fes = NULL;
+						return -1;
+					}
+					fes = tmp;
+				}
 				dst = &fes[nr_fes];
 				nr_fes++;
 
@@ -147,7 +153,15 @@ int process_fixup_entries(struct objtool_file *file)
 				if (src->alt_start_off == src->alt_end_off)
 					continue;
 
-				fes = realloc(fes, (nr_fes + 1) * sizeof(struct fixup_entry));
+				{
+					struct fixup_entry *tmp = realloc(fes, (nr_fes + 1) * sizeof(struct fixup_entry));
+					if (!tmp) {
+						free(fes);
+						fes = NULL;
+						return -1;
+					}
+					fes = tmp;
+				}
 				dst = &fes[nr_fes];
 				nr_fes++;
 
@@ -224,23 +238,19 @@ int set_cond_branch_target(uint32_t *insn,
 
 void check_and_flatten_fixup_entries(void)
 {
-	static struct fixup_entry *fe;
+	struct fixup_entry *fe;
 	unsigned int i;
 
-	i = nr_fes;
-	while (i) {
-		static struct fixup_entry *parent;
-		uint64_t nested_off; /* offset from start of parent */
+	for (i = 0; i < nr_fes; i++) {
+		struct fixup_entry *parent;
+		uint64_t nested_off;
 		uint64_t size;
 
-		i--;
 		fe = &fes[i];
 
 		parent = find_fe_altaddr(fe->start_off);
-		if (!parent) {
-			parent = find_fe_altaddr(fe->end_off);
+		if (!parent)
 			continue;
-		}
 
 		size = fe->end_off - fe->start_off;
 		nested_off = fe->start_off - parent->alt_start_off;
@@ -266,7 +276,8 @@ static struct symbol *find_symbol_at_address_within_section(struct section *sec,
 
 static int is_local_symbol(uint8_t st_other)
 {
-	return (st_other & 0x3) != 0;
+	/* STO_PPC64_LOCAL_ENTRY occupies bits [4:2]; 0 means no local entry offset */
+	return (st_other & 0x1c) == 0;
 }
 
 static struct symbol *find_symbol_at_address(struct objtool_file *file,
@@ -314,6 +325,8 @@ int process_alt_relocations(struct objtool_file *file)
 
 		relocation = &section->relocs[j];
 		sym = relocation->sym;
+		if (!sym)
+			continue;
 		addr = reloc_offset(relocation);
 		target = sym->sym.st_value + reloc_addend(relocation);
 		symbol = find_symbol_at_address(file, target);
@@ -339,12 +352,13 @@ int process_alt_relocations(struct objtool_file *file)
 		scn_delta = addr - ftr_alt->sh.sh_addr;
 		dst_addr = addr - fe->alt_start_off + fe->start_off;
 
+		if (!ftr_alt->data || !ftr_alt->data->d_buf)
+			continue;
+
 		if (arch_decode_instruction(file, ftr_alt, scn_delta, 4, &decoded_insn) < 0)
 			continue;
 
 		insn_ptr_raw = (uint32_t *)(ftr_alt->data->d_buf + scn_delta);
-		if (!insn_ptr_raw || !ftr_alt->data->d_buf)
-			continue;
 
 		insn = f32_to_cpu(file, *insn_ptr_raw);
 		new_insn = insn;
