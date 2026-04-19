@@ -334,7 +334,7 @@ int process_alt_relocations(struct objtool_file *file)
 		target = sym->sym.st_value + reloc_addend(relocation);
 		symbol = find_symbol_at_address(file, target);
 
-		if (symbol) {
+		if (symbol && is_64bit(file)) {
 			is_local = is_local_symbol(symbol->sym.st_other);
 			if (!is_local)
 				target = target + 0x8;
