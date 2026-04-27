@@ -38,6 +38,8 @@ struct disas_context *objtool_disas_ctx;
 
 size_t sym_name_max_len;
 
+// test
+
 struct instruction *find_insn(struct objtool_file *file,
 			      struct section *sec, unsigned long offset)
 {
